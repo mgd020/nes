@@ -4,15 +4,27 @@ A NES emulator written in C.
 
 ## Todo
 
-- [ ] CPU
-- [ ] Bus
-- [ ] Makefile
+- [x] Bus
+- [x] CPU
+- [x] RAM
+- [x] Makefile
+- [ ] Cart
+- [ ] Test
 - [ ] PPU
 - [ ] Input
+- [ ] APU
 - [ ] ?
 
-## Building
+## Testing
+
+To run all tests:
 
 ```sh
-gcc -Isrc src/bus.c test/test_cpu.c
+make tests
+```
+
+Or to run a specific test:
+
+```sh
+make test_cpu
 ```

@@ -1,7 +1,7 @@
 #include <assert.h>
 
 #include "cpu.h"
-#include "bus.h"
+#include "6502.h"
 
 #ifndef NDEBUG
 #include <stdio.h>
@@ -11,159 +11,7 @@
 
 // TODO: decimal?
 
-// X(INSTRUCTION, ADDRESSING_MODE, OPCODE, CYCLES)
-#define INSTRUCTION_SET() \
-    X(ADC, IMM, 0x69, 2)  \
-    X(ADC, ZPG, 0x65, 3)  \
-    X(ADC, ZPX, 0x75, 4)  \
-    X(ADC, ABS, 0x6d, 4)  \
-    X(ADC, ABX, 0x7d, 4)  \
-    X(ADC, ABY, 0x79, 4)  \
-    X(ADC, IDX, 0x61, 6)  \
-    X(ADC, IDY, 0x71, 5)  \
-    X(AND, IMM, 0x29, 2)  \
-    X(AND, ZPG, 0x25, 3)  \
-    X(AND, ZPX, 0x35, 4)  \
-    X(AND, ABS, 0x2d, 4)  \
-    X(AND, ABX, 0x3d, 4)  \
-    X(AND, ABY, 0x39, 4)  \
-    X(AND, IDX, 0x21, 6)  \
-    X(AND, IDY, 0x31, 5)  \
-    X(ASL, ACC, 0x0a, 2)  \
-    X(ASL, ZPG, 0x06, 5)  \
-    X(ASL, ZPX, 0x16, 6)  \
-    X(ASL, ABS, 0x0e, 6)  \
-    X(ASL, ABX, 0x1e, 7)  \
-    X(BCC, REL, 0x90, 2)  \
-    X(BCS, REL, 0xb0, 2)  \
-    X(BEQ, REL, 0xf0, 2)  \
-    X(BIT, ZPG, 0x24, 3)  \
-    X(BIT, ABS, 0x2c, 4)  \
-    X(BMI, REL, 0x30, 2)  \
-    X(BNE, REL, 0xd0, 2)  \
-    X(BPL, REL, 0x10, 2)  \
-    X(BRK, IMP, 0x00, 7)  \
-    X(BVC, REL, 0x50, 2)  \
-    X(BVS, REL, 0x70, 2)  \
-    X(CLC, IMP, 0x18, 2)  \
-    X(CLD, IMP, 0xd8, 2)  \
-    X(CLI, IMP, 0x58, 2)  \
-    X(CLV, IMP, 0xb8, 2)  \
-    X(CMP, IMM, 0xc9, 2)  \
-    X(CMP, ZPG, 0xc5, 3)  \
-    X(CMP, ZPX, 0xd5, 4)  \
-    X(CMP, ABS, 0xcd, 4)  \
-    X(CMP, ABX, 0xdd, 4)  \
-    X(CMP, ABY, 0xd9, 4)  \
-    X(CMP, IDX, 0xc1, 6)  \
-    X(CMP, IDY, 0xd1, 5)  \
-    X(CPX, IMM, 0xe0, 2)  \
-    X(CPX, ZPG, 0xe4, 3)  \
-    X(CPX, ABS, 0xec, 4)  \
-    X(CPY, IMM, 0xc0, 2)  \
-    X(CPY, ZPG, 0xc4, 3)  \
-    X(CPY, ABS, 0xcc, 4)  \
-    X(DEC, ZPG, 0xc6, 5)  \
-    X(DEC, ZPX, 0xd6, 6)  \
-    X(DEC, ABS, 0xce, 6)  \
-    X(DEC, ABX, 0xde, 7)  \
-    X(DEX, IMP, 0xca, 2)  \
-    X(DEY, IMP, 0x88, 2)  \
-    X(EOR, IMM, 0x49, 2)  \
-    X(EOR, ZPG, 0x45, 3)  \
-    X(EOR, ZPX, 0x55, 4)  \
-    X(EOR, ABS, 0x4d, 4)  \
-    X(EOR, ABX, 0x5d, 4)  \
-    X(EOR, ABY, 0x59, 4)  \
-    X(EOR, IDX, 0x41, 6)  \
-    X(EOR, IDY, 0x51, 5)  \
-    X(INC, ZPG, 0xe6, 5)  \
-    X(INC, ZPX, 0xf6, 6)  \
-    X(INC, ABS, 0xee, 6)  \
-    X(INC, ABX, 0xfe, 7)  \
-    X(INX, IMP, 0xe8, 2)  \
-    X(INY, IMP, 0xc8, 2)  \
-    X(JMP, ABS, 0x4c, 3)  \
-    X(JMP, IND, 0x6c, 5)  \
-    X(JSR, ABS, 0x20, 6)  \
-    X(LDA, IMM, 0xa9, 2)  \
-    X(LDA, ZPG, 0xa5, 3)  \
-    X(LDA, ZPX, 0xb5, 4)  \
-    X(LDA, ABS, 0xad, 4)  \
-    X(LDA, ABX, 0xbd, 4)  \
-    X(LDA, ABY, 0xb9, 4)  \
-    X(LDA, IDX, 0xa1, 6)  \
-    X(LDA, IDY, 0xb1, 5)  \
-    X(LDX, IMM, 0xa2, 2)  \
-    X(LDX, ZPG, 0xa6, 3)  \
-    X(LDX, ZPY, 0xb6, 4)  \
-    X(LDX, ABS, 0xae, 4)  \
-    X(LDX, ABY, 0xbe, 4)  \
-    X(LDY, IMM, 0xa0, 2)  \
-    X(LDY, ZPG, 0xa4, 3)  \
-    X(LDY, ZPX, 0xb4, 4)  \
-    X(LDY, ABS, 0xac, 4)  \
-    X(LDY, ABX, 0xbc, 4)  \
-    X(LSR, ACC, 0x4a, 2)  \
-    X(LSR, ZPG, 0x46, 5)  \
-    X(LSR, ZPX, 0x56, 6)  \
-    X(LSR, ABS, 0x4e, 6)  \
-    X(LSR, ABX, 0x5e, 7)  \
-    X(NOP, IMP, 0xea, 2)  \
-    X(ORA, IMM, 0x09, 2)  \
-    X(ORA, ZPG, 0x05, 3)  \
-    X(ORA, ZPX, 0x15, 4)  \
-    X(ORA, ABS, 0x0d, 4)  \
-    X(ORA, ABX, 0x1d, 4)  \
-    X(ORA, ABY, 0x19, 4)  \
-    X(ORA, IDX, 0x01, 6)  \
-    X(ORA, IDY, 0x11, 5)  \
-    X(PHA, IMP, 0x48, 3)  \
-    X(PHP, IMP, 0x08, 3)  \
-    X(PLA, IMP, 0x68, 4)  \
-    X(PLP, IMP, 0x28, 4)  \
-    X(ROL, ACC, 0x2a, 2)  \
-    X(ROL, ZPG, 0x26, 5)  \
-    X(ROL, ZPX, 0x36, 6)  \
-    X(ROL, ABS, 0x2e, 6)  \
-    X(ROL, ABX, 0x3e, 7)  \
-    X(ROR, ACC, 0x6a, 2)  \
-    X(ROR, ZPG, 0x66, 5)  \
-    X(ROR, ZPX, 0x76, 6)  \
-    X(ROR, ABS, 0x6e, 6)  \
-    X(ROR, ABX, 0x7e, 7)  \
-    X(RTI, IMP, 0x40, 6)  \
-    X(RTS, IMP, 0x60, 6)  \
-    X(SBC, IMM, 0xe9, 2)  \
-    X(SBC, ZPG, 0xe5, 3)  \
-    X(SBC, ZPX, 0xf5, 4)  \
-    X(SBC, ABS, 0xed, 4)  \
-    X(SBC, ABX, 0xfd, 4)  \
-    X(SBC, ABY, 0xf9, 4)  \
-    X(SBC, IDX, 0xe1, 6)  \
-    X(SBC, IDY, 0xf1, 5)  \
-    X(SEC, IMP, 0x38, 2)  \
-    X(SED, IMP, 0xf8, 2)  \
-    X(SEI, IMP, 0x78, 2)  \
-    X(STA, ZPG, 0x85, 3)  \
-    X(STA, ZPX, 0x95, 4)  \
-    X(STA, ABS, 0x8d, 4)  \
-    X(STA, ABX, 0x9d, 5)  \
-    X(STA, ABY, 0x99, 5)  \
-    X(STA, IDX, 0x81, 6)  \
-    X(STA, IDY, 0x91, 6)  \
-    X(STX, ZPG, 0x86, 3)  \
-    X(STX, ZPY, 0x96, 4)  \
-    X(STX, ABS, 0x8e, 4)  \
-    X(STY, ZPG, 0x84, 3)  \
-    X(STY, ZPX, 0x94, 4)  \
-    X(STY, ABS, 0x8c, 4)  \
-    X(TAX, IMP, 0xaa, 2)  \
-    X(TAY, IMP, 0xa8, 2)  \
-    X(TSX, IMP, 0xba, 2)  \
-    X(TXA, IMP, 0x8a, 2)  \
-    X(TXS, IMP, 0x9a, 2)  \
-    X(TYA, IMP, 0x98, 2)
+void CPU_tick(CPU *cpu);
 
 #define X(INSTRUCTION, ADDRESSING_MODE, OPCODE, CYCLES) \
     int INSTRUCTION(CPU *);
@@ -927,7 +775,13 @@ int TYA(CPU *cpu)
 void CPU_init(CPU *cpu, Bus *bus)
 {
     cpu->bus = bus;
-    CPU_reset(cpu);
+
+    cpu->device.tick = (BusDeviceTick) &CPU_tick;
+    cpu->device.read = NULL;
+    cpu->device.write = NULL;
+    cpu->device.ptr = cpu;
+
+    Bus_connect(bus, &cpu->device);
 }
 
 void CPU_reset(CPU *cpu)
@@ -981,159 +835,7 @@ void CPU_nmi(CPU *cpu)
     cpu->cycles += 8;
 }
 
-#ifndef NDEBUG
-
-void disassemble(CPU *cpu, int addr, int lines)
-{
-    /*
-Example:
-
-8000        LDX #$0A        A2 0A
-8002        STX $0000       8E 00 00
-8005        LDX #$03        A2 03
-8007        STX $0001       8E 01 00
-800A        LDY $0000       AC 00 00
-800D        LDA #$00        A9 00
-800F        CLC             18
-8010        ADC $0001       6D 01 00
-8013        DEY             88
-8014        BNE $8010       D0 FA
-8016        STA $0002       8D 02 00
-8019        NOP             EA
-801A        NOP             EA
-801B        NOP             EA
-    */
-    while (lines-- > 0)
-    {
-        int lo, hi, op = Bus_read(cpu->bus, addr);
-        switch (op)
-        {
-
-#define X(INSTRUCTION, ADDRESSING_MODE, OPCODE, CYCLES)                                                            \
-    case OPCODE:                                                                                                   \
-        if (ADDRESSING_MODE == IMP)                                                                                \
-        {                                                                                                          \
-            printf("%04X        " #INSTRUCTION "             %02X\n", addr, op);                                   \
-            ++addr;                                                                                                \
-        }                                                                                                          \
-        else if (ADDRESSING_MODE == ACC)                                                                           \
-        {                                                                                                          \
-            printf("%04X        " #INSTRUCTION " A           %02X\n", addr, op);                                   \
-            ++addr;                                                                                                \
-        }                                                                                                          \
-        else if (ADDRESSING_MODE == IMM)                                                                           \
-        {                                                                                                          \
-            lo = Bus_read(cpu->bus, addr + 1);                                                                     \
-            printf("%04X        " #INSTRUCTION " #$%02X        %02X %02X\n", addr, lo, op, lo);                    \
-            addr += 2;                                                                                             \
-        }                                                                                                          \
-        else if (ADDRESSING_MODE == ZPG)                                                                           \
-        {                                                                                                          \
-            lo = Bus_read(cpu->bus, addr + 1);                                                                     \
-            printf("%04X        " #INSTRUCTION " $%02X         %02X %02X\n", addr, lo, op, lo);                    \
-            addr += 2;                                                                                             \
-        }                                                                                                          \
-        else if (ADDRESSING_MODE == ZPX)                                                                           \
-        {                                                                                                          \
-            lo = Bus_read(cpu->bus, addr + 1);                                                                     \
-            printf("%04X        " #INSTRUCTION " $%02X,X       %02X %02X\n", addr, lo, op, lo);                    \
-            addr += 2;                                                                                             \
-        }                                                                                                          \
-        else if (ADDRESSING_MODE == ZPY)                                                                           \
-        {                                                                                                          \
-            lo = Bus_read(cpu->bus, addr + 1);                                                                     \
-            printf("%04X        " #INSTRUCTION " $%02X,Y       %02X %02X\n", addr, lo, op, lo);                    \
-            addr += 2;                                                                                             \
-        }                                                                                                          \
-        else if (ADDRESSING_MODE == REL)                                                                           \
-        {                                                                                                          \
-            lo = Bus_read(cpu->bus, addr + 1);                                                                     \
-            printf("%04X        " #INSTRUCTION " $%04X       %02X %02X\n", addr, addr + u8_to_s8(lo) + 2, op, lo); \
-            addr += 2;                                                                                             \
-        }                                                                                                          \
-        else if (ADDRESSING_MODE == ABS)                                                                           \
-        {                                                                                                          \
-            lo = Bus_read(cpu->bus, addr + 1);                                                                     \
-            hi = Bus_read(cpu->bus, addr + 2);                                                                     \
-            printf("%04X        " #INSTRUCTION " $%02X%02X       %02X %02X %02X\n", addr, hi, lo, op, lo, hi);     \
-            addr += 3;                                                                                             \
-        }                                                                                                          \
-        else if (ADDRESSING_MODE == ABX)                                                                           \
-        {                                                                                                          \
-            lo = Bus_read(cpu->bus, addr + 1);                                                                     \
-            hi = Bus_read(cpu->bus, addr + 2);                                                                     \
-            printf("%04X        " #INSTRUCTION " $%02X%02X,X     %02X %02X %02X\n", addr, hi, lo, op, lo, hi);     \
-            addr += 3;                                                                                             \
-        }                                                                                                          \
-        else if (ADDRESSING_MODE == ABY)                                                                           \
-        {                                                                                                          \
-            lo = Bus_read(cpu->bus, addr + 1);                                                                     \
-            hi = Bus_read(cpu->bus, addr + 2);                                                                     \
-            printf("%04X        " #INSTRUCTION " $%02X%02X,Y     %02X %02X %02X\n", addr, hi, lo, op, lo, hi);     \
-            addr += 3;                                                                                             \
-        }                                                                                                          \
-        else if (ADDRESSING_MODE == IND)                                                                           \
-        {                                                                                                          \
-            lo = Bus_read(cpu->bus, addr + 1);                                                                     \
-            hi = Bus_read(cpu->bus, addr + 2);                                                                     \
-            printf("%04X        " #INSTRUCTION " ($%02X%02X)     %02X %02X %02X\n", addr, hi, lo, op, lo, hi);     \
-            addr += 3;                                                                                             \
-        }                                                                                                          \
-        else if (ADDRESSING_MODE == INX)                                                                           \
-        {                                                                                                          \
-            lo = Bus_read(cpu->bus, addr + 1);                                                                     \
-            hi = Bus_read(cpu->bus, addr + 2);                                                                     \
-            printf("%04X        " #INSTRUCTION " ($%02X%02X,X)   %02X %02X %02X\n", addr, hi, lo, op, lo, hi);     \
-            addr += 3;                                                                                             \
-        }                                                                                                          \
-        else if (ADDRESSING_MODE == INY)                                                                           \
-        {                                                                                                          \
-            lo = Bus_read(cpu->bus, addr + 1);                                                                     \
-            hi = Bus_read(cpu->bus, addr + 2);                                                                     \
-            printf("%04X        " #INSTRUCTION " ($%02X%02X),Y   %02X %02X %02X\n", addr, hi, lo, op, lo, hi);     \
-            addr += 3;                                                                                             \
-        }                                                                                                          \
-        break;
-
-            INSTRUCTION_SET();
-
-#undef X
-        }
-    }
-}
-
-void print_memory(Bus *bus, int addr, int lines)
-{
-    while (lines-- > 0)
-    {
-        printf("%04X: ", addr);
-        for (int i = 0; i < 16; ++i)
-        {
-            printf("%02X ", Bus_read(bus, addr + i));
-        }
-        printf("\n");
-        addr += 16;
-    }
-}
-
-void print_state(CPU *cpu)
-{
-    printf("         n v - b d i z c\n");
-    printf("status:  %d %d   %d %d %d %d %d\n", cpu->n, cpu->v, cpu->b, cpu->d, cpu->i, cpu->z, cpu->c);
-    printf("pc:      $%04X\n", cpu->pc);
-    printf("sp:      $1%02X\n", cpu->sp);
-    printf("cycles:  %d\n", cpu->cycles);
-    printf("          a      x      y\n");
-    printf("regs:    #%02X    #%02X    #%02X\n", cpu->a, cpu->x, cpu->y);
-    puts("");
-    print_memory(cpu->bus, 0, 16);
-    puts("");
-    disassemble(cpu, cpu->pc, 16);
-}
-
-#endif
-
-void CPU_step(CPU *cpu)
+void CPU_tick(CPU *cpu)
 {
     if (cpu->cycles)
     {
@@ -1169,8 +871,4 @@ void CPU_step(CPU *cpu)
     {
         --cpu->cycles;
     }
-
-#ifndef NDEBUG
-    print_state(cpu);
-#endif
 }

@@ -1,8 +1,11 @@
 #define DEBUG
-#include "cpu.c"
+#include "cpu.h"
 #include "bus.h"
+#include "ram.h"
+#include "test.h"
 
 #include <string.h>
+#include <stdio.h>
 
 #define LEN(ARRAY) (sizeof(ARRAY) / sizeof((ARRAY)[0]))
 
@@ -12,10 +15,13 @@ int main()
 {
     CPU cpu;
     Bus bus;
-    cpu.bus = &bus;
+    RAM ram;
+    RAM cart;
 
     Bus_init(&bus);
     CPU_init(&cpu, &bus);
+    RAM_init(&ram, &bus, 0x800, 0, 0x1FFF);
+    RAM_init(&cart, &bus, 0xBFE0, 0x4020, 0xFFFF);
 
     /*
         https://www.masswerk.at/6502/assembler.html
@@ -84,18 +90,26 @@ int main()
         0xEA,
     };
 
-    memcpy(bus.ram + 0x8000, &program, LEN(program));
-    bus.ram[0xFFFD] = 0x80;
+    for (int i = 0, e = LEN(program); i < e; ++i)
+    {
+        RAM_write(&cart, i + 0x8000, program[i]);
+    }
+
+    RAM_write(&cart, 0xFFFD, 0x80);
 
     CPU_reset(&cpu);
 
     for (;;)
     {
         puts(CLEAR_SCREEN);
-        print_state(&cpu);
+        print_cpu(&cpu);
+        puts("");
+        print_memory(&bus, 0, 16);
+        puts("");
+        disassemble(&bus, cpu.pc, 16);
         getchar();
         cpu.cycles = 0; // fuck waiting
-        CPU_step(&cpu);
+        Bus_tick(&bus);
     }
 
     return 0;

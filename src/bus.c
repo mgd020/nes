@@ -1,18 +1,91 @@
 #include "bus.h"
-#include <string.h>
+#include <assert.h>
 
 void Bus_init(Bus *bus)
 {
-    memset(bus->ram, 0, 0x10000);
+    bus->devices = 0;
+}
+
+int Bus_connect(Bus *bus, BusDevice *device)
+{
+    assert(device);
+    device->next = bus->devices;
+    bus->devices = device;
+    return 0;
+}
+
+int Bus_disconnect(Bus *bus, BusDevice *device)
+{
+    assert(device);
+    BusDevice *previous_device = bus->devices;
+    if (previous_device == device)
+    {
+        bus->devices = device->next;
+    }
+    else
+    {
+        while (previous_device && previous_device->next != device)
+        {
+            previous_device = previous_device->next;
+        }
+        if (!previous_device)
+        {
+            // device not found
+            return -1;
+        }
+        previous_device->next = device->next;
+    }
+    device->next = 0;
+    return 0;
+}
+
+void Bus_tick(Bus *bus)
+{
+    for (BusDevice *device = bus->devices; device; device = device->next)
+    {
+        if (device->tick)
+        {
+            device->tick(device->ptr);
+        }
+    }
 }
 
 int Bus_read(Bus *bus, int addr)
 {
-    return bus->ram[addr & 0xFFFF];
+    for (BusDevice *device = bus->devices; device; device = device->next)
+    {
+        if (!device->read)
+        {
+            continue;
+        }
+
+        int result = device->read(device->ptr, addr);
+
+        if (result != ~0)
+        {
+            return result;
+        }
+    }
+
+    return ~0;
 }
 
 int Bus_write(Bus *bus, int addr, int byte)
 {
-    bus->ram[addr & 0xFFFF] = byte & 0xFF;
-    return 0;
+    for (BusDevice *device = bus->devices; device; device = device->next)
+    {
+        if (!device->write)
+        {
+            continue;
+        }
+
+        int result = device->write(device->ptr, addr, byte);
+
+        if (result != ~0)
+        {
+            return result;
+        }
+    }
+
+    return ~0;
 }

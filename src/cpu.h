@@ -1,10 +1,11 @@
 #pragma once
 
-typedef struct Bus Bus;
+#include "bus.h"
 
 typedef struct CPU
 {
     Bus *bus;
+    BusDevice device;
 
     unsigned pc : 16; // program counter
     unsigned sp : 8;  // stack pointer (0x1xx)
@@ -26,8 +27,6 @@ typedef struct CPU
 } CPU;
 
 void CPU_init(CPU *, Bus *);
-
-void CPU_step(CPU *); // maybe this should be called by the Bus? as a tick?
 
 // Trigger reset
 void CPU_reset(CPU *);
