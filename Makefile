@@ -39,7 +39,7 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 -include $(DEPS)
 
 # object dependencies
-$(BUILD_DIR)/test_cpu: $(BUILD_DIR)/bus.o $(BUILD_DIR)/ram.o $(BUILD_DIR)/test.o
+$(BUILD_DIR)/test_cpu: $(patsubst %,$(BUILD_DIR)/%.o, bus ram test util cpu)
 
 # remove build dir
 .PHONY: clean
