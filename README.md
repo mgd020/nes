@@ -13,7 +13,8 @@ A NES emulator written in C.
 - [ ] PPU
 - [ ] Input
 - [ ] APU
-- [ ] ?
+- [ ] Trainer
+- [ ] Games
 
 ## Testing
 

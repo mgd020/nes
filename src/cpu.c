@@ -12,8 +12,6 @@
 
 // TODO: decimal?
 
-void CPU_tick(CPU *cpu);
-
 #define X(INSTRUCTION, ADDRESSING_MODE, OPCODE, CYCLES) \
     int INSTRUCTION(CPU *);
 
@@ -763,19 +761,7 @@ int TYA(CPU *cpu)
     return 0;
 }
 
-/*
-    Public functions
-*/
-
-void CPU_init(CPU *cpu, Bus *bus)
-{
-    cpu->device.tick = (BusDeviceTick) &CPU_tick;
-    cpu->device.read = 0;
-    cpu->device.write = 0;
-
-    cpu->bus = bus;
-}
-
+// Trigger reset
 void CPU_reset(CPU *cpu)
 {
     // load reset vector from 0xFFFC
@@ -798,6 +784,7 @@ void CPU_reset(CPU *cpu)
     cpu->cycles = 8;
 }
 
+// Trigger interrupt request
 void CPU_irq(CPU *cpu)
 {
     // if interupts disabled, do nothing
@@ -815,6 +802,7 @@ void CPU_irq(CPU *cpu)
     cpu->cycles += 7;
 }
 
+// Trigger non-maskable interrupt
 void CPU_nmi(CPU *cpu)
 {
     // clear break flag
@@ -863,4 +851,39 @@ void CPU_tick(CPU *cpu)
     {
         --cpu->cycles;
     }
+}
+
+void CPU_message(CPU *cpu, Bus *bus)
+{
+    switch (bus->message)
+    {
+    case BUS_IRQ:
+        CPU_irq(cpu);
+        break;
+
+    case BUS_NMI:
+        CPU_nmi(cpu);
+        break;
+
+    case BUS_TICK:
+        CPU_tick(cpu);
+        break;
+
+    case BUS_RESET:
+        CPU_reset(cpu);
+        break;
+
+    default:
+        break;
+    }
+}
+
+/*
+    Public functions
+*/
+
+void CPU_init(CPU *cpu, Bus *bus)
+{
+    cpu->device.message = (BusDeviceMessage) &CPU_message;
+    cpu->bus = bus;
 }

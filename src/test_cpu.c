@@ -97,22 +97,22 @@ int main()
 
     for (int i = 0, e = LEN(program); i < e; ++i)
     {
-        RAM_write(&cart, i + 0x8000, program[i]);
+        Bus_write(&bus, i + 0x8000, program[i]);
     }
 
-    RAM_write(&cart, 0xFFFD, 0x80);
+    Bus_write(&bus, 0xFFFD, 0x80);
 
-    CPU_reset(&cpu);
+    Bus_message(&bus, BUS_RESET);
 
 #if 1
     // it should take ~40 cycles to compute the result
     for (int i = 0; i < 40; ++i)
     {
         cpu.cycles = 0; // skip wait
-        Bus_tick(&bus);
+        Bus_message(&bus, BUS_TICK);
     }
 
-    int result = RAM_read(&ram, 2);
+    int result = Bus_read(&bus, 2);
     assert(result == 0x1E);
 
 #else
@@ -127,7 +127,7 @@ int main()
         disassemble(&bus, cpu.pc, 16);
         getchar();
         cpu.cycles = 0; // skip wait
-        Bus_tick(&bus);
+        Bus_message(&bus, BUS_TICK);
     }
 #endif
 

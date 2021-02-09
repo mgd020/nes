@@ -27,12 +27,3 @@ typedef struct CPU
 } CPU;
 
 void CPU_init(CPU *, Bus *);
-
-// Trigger reset
-void CPU_reset(CPU *);
-
-// Trigger interrupt request
-void CPU_irq(CPU *);
-
-// Trigger non-maskable interrupt
-void CPU_nmi(CPU *);
