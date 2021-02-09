@@ -2,6 +2,7 @@
 
 #include "cpu.h"
 #include "6502.h"
+#include "util.h"
 
 #ifndef NDEBUG
 #include <stdio.h>
@@ -105,12 +106,6 @@ void pull_pc(CPU *cpu)
     int lo = pull(cpu);
     int hi = pull(cpu);
     cpu->pc = ((hi << 8) | lo);
-}
-
-// Convert a int8 to a int
-int u8_to_s8(int i)
-{
-    return (signed char)i;
 }
 
 // Execute branch if test was true
