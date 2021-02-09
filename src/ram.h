@@ -10,7 +10,7 @@ typedef struct RAM
     int size, addr_min, addr_max;
 } RAM;
 
-void RAM_init(RAM *ram, Bus *bus, int size, int addr_min, int addr_max);
+void RAM_init(RAM *ram, int size, int addr_min, int addr_max);
 
 // Read byte at address, returning -1 on failure.
 int RAM_read(RAM *ram, int addr);

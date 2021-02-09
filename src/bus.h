@@ -1,8 +1,10 @@
 #pragma once
 
-typedef void (*BusDeviceTick)(void *ptr);
-typedef int (*BusDeviceRead)(void *ptr, int addr);
-typedef int (*BusDeviceWrite)(void *ptr, int addr, int byte);
+typedef struct BusDevice BusDevice;
+
+typedef void (*BusDeviceTick)(BusDevice *device);
+typedef int (*BusDeviceRead)(BusDevice *device, int addr);
+typedef int (*BusDeviceWrite)(BusDevice *device, int addr, int byte);
 
 /*
     An interface to a device on the bus.
@@ -12,14 +14,13 @@ typedef int (*BusDeviceWrite)(void *ptr, int addr, int byte);
     For read() and write(), the first device that returns a value != ~0 is
     accepted and returned to the caller of the bus method.
 */
-typedef struct BusDevice
+struct BusDevice
 {
     struct BusDevice *next;
     BusDeviceTick tick;
     BusDeviceRead read;
     BusDeviceWrite write;
-    void *ptr;
-} BusDevice;
+};
 
 typedef struct Bus
 {

@@ -769,14 +769,11 @@ int TYA(CPU *cpu)
 
 void CPU_init(CPU *cpu, Bus *bus)
 {
-    cpu->bus = bus;
-
     cpu->device.tick = (BusDeviceTick) &CPU_tick;
-    cpu->device.read = NULL;
-    cpu->device.write = NULL;
-    cpu->device.ptr = cpu;
+    cpu->device.read = 0;
+    cpu->device.write = 0;
 
-    Bus_connect(bus, &cpu->device);
+    cpu->bus = bus;
 }
 
 void CPU_reset(CPU *cpu)

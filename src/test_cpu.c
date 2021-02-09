@@ -21,8 +21,12 @@ int main()
 
     Bus_init(&bus);
     CPU_init(&cpu, &bus);
-    RAM_init(&ram, &bus, 0x800, 0, 0x1FFF);
-    RAM_init(&cart, &bus, 0xBFE0, 0x4020, 0xFFFF);
+    RAM_init(&ram, 0x800, 0, 0x1FFF);
+    RAM_init(&cart, 0xBFE0, 0x4020, 0xFFFF);
+
+    Bus_connect(&bus, (BusDevice*) &cpu);
+    Bus_connect(&bus, (BusDevice*) &ram);
+    Bus_connect(&bus, (BusDevice*) &cart);
 
     /*
         https://www.masswerk.at/6502/assembler.html
@@ -100,6 +104,7 @@ int main()
 
     CPU_reset(&cpu);
 
+#if 1
     // it should take ~40 cycles to compute the result
     for (int i = 0; i < 40; ++i)
     {
@@ -110,19 +115,21 @@ int main()
     int result = RAM_read(&ram, 2);
     assert(result == 0x1E);
 
+#else
     // interactive
-    // for (;;)
-    // {
-    //     puts(CLEAR_SCREEN);
-    //     print_cpu(&cpu);
-    //     puts("");
-    //     print_memory(&bus, 0, 16);
-    //     puts("");
-    //     disassemble(&bus, cpu.pc, 16);
-    //     getchar();
-    //     cpu.cycles = 0; // skip wait
-    //     Bus_tick(&bus);
-    // }
+    for (;;)
+    {
+        puts(CLEAR_SCREEN);
+        print_cpu(&cpu);
+        puts("");
+        print_memory(&bus, 0, 16);
+        puts("");
+        disassemble(&bus, cpu.pc, 16);
+        getchar();
+        cpu.cycles = 0; // skip wait
+        Bus_tick(&bus);
+    }
+#endif
 
     return 0;
 }

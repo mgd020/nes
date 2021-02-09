@@ -45,7 +45,7 @@ void Bus_tick(Bus *bus)
     {
         if (device->tick)
         {
-            device->tick(device->ptr);
+            device->tick(device);
         }
     }
 }
@@ -59,7 +59,7 @@ int Bus_read(Bus *bus, int addr)
             continue;
         }
 
-        int result = device->read(device->ptr, addr);
+        int result = device->read(device, addr);
 
         if (result != ~0)
         {
@@ -79,7 +79,7 @@ int Bus_write(Bus *bus, int addr, int byte)
             continue;
         }
 
-        int result = device->write(device->ptr, addr, byte);
+        int result = device->write(device, addr, byte);
 
         if (result != ~0)
         {

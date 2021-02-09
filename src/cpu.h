@@ -4,8 +4,8 @@
 
 typedef struct CPU
 {
-    Bus *bus;
     BusDevice device;
+    Bus *bus;
 
     unsigned pc : 16; // program counter
     unsigned sp : 8;  // stack pointer (0x1xx)
