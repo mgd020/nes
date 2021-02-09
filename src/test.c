@@ -1,7 +1,25 @@
 #include <stdio.h>
 
 #include "6502.h"
-#include "cpu.c"
+#include "cpu.h"
+#include "util.h"
+
+enum AddressingMode
+{
+    ABS,
+    ABX,
+    ABY,
+    ACC,
+    IDX,
+    IDY,
+    IMM,
+    IMP,
+    IND,
+    REL,
+    ZPG,
+    ZPX,
+    ZPY,
+};
 
 void disassemble(Bus *bus, int addr, int lines)
 {
@@ -43,73 +61,73 @@ Example:
         }                                                                                                          \
         else if (ADDRESSING_MODE == IMM)                                                                           \
         {                                                                                                          \
-            lo = Bus_read(bus, addr + 1);                                                                     \
+            lo = Bus_read(bus, addr + 1);                                                                          \
             printf("%04X        " #INSTRUCTION " #$%02X        %02X %02X\n", addr, lo, op, lo);                    \
             addr += 2;                                                                                             \
         }                                                                                                          \
         else if (ADDRESSING_MODE == ZPG)                                                                           \
         {                                                                                                          \
-            lo = Bus_read(bus, addr + 1);                                                                     \
+            lo = Bus_read(bus, addr + 1);                                                                          \
             printf("%04X        " #INSTRUCTION " $%02X         %02X %02X\n", addr, lo, op, lo);                    \
             addr += 2;                                                                                             \
         }                                                                                                          \
         else if (ADDRESSING_MODE == ZPX)                                                                           \
         {                                                                                                          \
-            lo = Bus_read(bus, addr + 1);                                                                     \
+            lo = Bus_read(bus, addr + 1);                                                                          \
             printf("%04X        " #INSTRUCTION " $%02X,X       %02X %02X\n", addr, lo, op, lo);                    \
             addr += 2;                                                                                             \
         }                                                                                                          \
         else if (ADDRESSING_MODE == ZPY)                                                                           \
         {                                                                                                          \
-            lo = Bus_read(bus, addr + 1);                                                                     \
+            lo = Bus_read(bus, addr + 1);                                                                          \
             printf("%04X        " #INSTRUCTION " $%02X,Y       %02X %02X\n", addr, lo, op, lo);                    \
             addr += 2;                                                                                             \
         }                                                                                                          \
         else if (ADDRESSING_MODE == REL)                                                                           \
         {                                                                                                          \
-            lo = Bus_read(bus, addr + 1);                                                                     \
+            lo = Bus_read(bus, addr + 1);                                                                          \
             printf("%04X        " #INSTRUCTION " $%04X       %02X %02X\n", addr, addr + u8_to_s8(lo) + 2, op, lo); \
             addr += 2;                                                                                             \
         }                                                                                                          \
         else if (ADDRESSING_MODE == ABS)                                                                           \
         {                                                                                                          \
-            lo = Bus_read(bus, addr + 1);                                                                     \
-            hi = Bus_read(bus, addr + 2);                                                                     \
+            lo = Bus_read(bus, addr + 1);                                                                          \
+            hi = Bus_read(bus, addr + 2);                                                                          \
             printf("%04X        " #INSTRUCTION " $%02X%02X       %02X %02X %02X\n", addr, hi, lo, op, lo, hi);     \
             addr += 3;                                                                                             \
         }                                                                                                          \
         else if (ADDRESSING_MODE == ABX)                                                                           \
         {                                                                                                          \
-            lo = Bus_read(bus, addr + 1);                                                                     \
-            hi = Bus_read(bus, addr + 2);                                                                     \
+            lo = Bus_read(bus, addr + 1);                                                                          \
+            hi = Bus_read(bus, addr + 2);                                                                          \
             printf("%04X        " #INSTRUCTION " $%02X%02X,X     %02X %02X %02X\n", addr, hi, lo, op, lo, hi);     \
             addr += 3;                                                                                             \
         }                                                                                                          \
         else if (ADDRESSING_MODE == ABY)                                                                           \
         {                                                                                                          \
-            lo = Bus_read(bus, addr + 1);                                                                     \
-            hi = Bus_read(bus, addr + 2);                                                                     \
+            lo = Bus_read(bus, addr + 1);                                                                          \
+            hi = Bus_read(bus, addr + 2);                                                                          \
             printf("%04X        " #INSTRUCTION " $%02X%02X,Y     %02X %02X %02X\n", addr, hi, lo, op, lo, hi);     \
             addr += 3;                                                                                             \
         }                                                                                                          \
         else if (ADDRESSING_MODE == IND)                                                                           \
         {                                                                                                          \
-            lo = Bus_read(bus, addr + 1);                                                                     \
-            hi = Bus_read(bus, addr + 2);                                                                     \
+            lo = Bus_read(bus, addr + 1);                                                                          \
+            hi = Bus_read(bus, addr + 2);                                                                          \
             printf("%04X        " #INSTRUCTION " ($%02X%02X)     %02X %02X %02X\n", addr, hi, lo, op, lo, hi);     \
             addr += 3;                                                                                             \
         }                                                                                                          \
-        else if (ADDRESSING_MODE == INX)                                                                           \
+        else if (ADDRESSING_MODE == IDX)                                                                           \
         {                                                                                                          \
-            lo = Bus_read(bus, addr + 1);                                                                     \
-            hi = Bus_read(bus, addr + 2);                                                                     \
+            lo = Bus_read(bus, addr + 1);                                                                          \
+            hi = Bus_read(bus, addr + 2);                                                                          \
             printf("%04X        " #INSTRUCTION " ($%02X%02X,X)   %02X %02X %02X\n", addr, hi, lo, op, lo, hi);     \
             addr += 3;                                                                                             \
         }                                                                                                          \
-        else if (ADDRESSING_MODE == INY)                                                                           \
+        else if (ADDRESSING_MODE == IDY)                                                                           \
         {                                                                                                          \
-            lo = Bus_read(bus, addr + 1);                                                                     \
-            hi = Bus_read(bus, addr + 2);                                                                     \
+            lo = Bus_read(bus, addr + 1);                                                                          \
+            hi = Bus_read(bus, addr + 2);                                                                          \
             printf("%04X        " #INSTRUCTION " ($%02X%02X),Y   %02X %02X %02X\n", addr, hi, lo, op, lo, hi);     \
             addr += 3;                                                                                             \
         }                                                                                                          \
