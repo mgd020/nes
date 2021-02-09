@@ -6,6 +6,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <assert.h>
 
 #define LEN(ARRAY) (sizeof(ARRAY) / sizeof((ARRAY)[0]))
 
@@ -99,18 +100,29 @@ int main()
 
     CPU_reset(&cpu);
 
-    for (;;)
+    // it should take ~40 cycles to compute the result
+    for (int i = 0; i < 40; ++i)
     {
-        puts(CLEAR_SCREEN);
-        print_cpu(&cpu);
-        puts("");
-        print_memory(&bus, 0, 16);
-        puts("");
-        disassemble(&bus, cpu.pc, 16);
-        getchar();
-        cpu.cycles = 0; // fuck waiting
+        cpu.cycles = 0; // skip wait
         Bus_tick(&bus);
     }
+
+    int result = RAM_read(&ram, 2);
+    assert(result == 0x1E);
+
+    // interactive
+    // for (;;)
+    // {
+    //     puts(CLEAR_SCREEN);
+    //     print_cpu(&cpu);
+    //     puts("");
+    //     print_memory(&bus, 0, 16);
+    //     puts("");
+    //     disassemble(&bus, cpu.pc, 16);
+    //     getchar();
+    //     cpu.cycles = 0; // skip wait
+    //     Bus_tick(&bus);
+    // }
 
     return 0;
 }
